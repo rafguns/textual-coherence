@@ -22,3 +22,21 @@ def test_cluster_jsd_value(single_cluster):
     assert textual_coherence.cluster_jsd_value(
         single_cluster[0], single_cluster[1]
     ) == pytest.approx(0.18599437)
+
+
+def test_coherence_inconsistent_number_terms():
+    clustering_solution_inconsistent_terms = [
+        np.array([[0, 1, 0], [1, 2, 0], [7, 8, 0]]),
+        np.array([[3, 4], [5, 6]]),
+    ]
+    with pytest.raises(ValueError):
+        textual_coherence.coherence(clustering_solution_inconsistent_terms)
+
+
+def test_coherence_more_than_2_dimensions():
+    clustering_solution_wrong_dimensions = [
+        np.array([[[0, 1], [1, 2]], [[7, 8], [9, 10]]]),
+        np.array([[3, 4], [5, 6]]),
+    ]
+    with pytest.raises(ValueError):
+        textual_coherence.coherence(clustering_solution_wrong_dimensions)
