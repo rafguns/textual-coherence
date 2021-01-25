@@ -49,20 +49,15 @@ def probabilities(docs: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     return (doc_probs, cluster_prob)
 
 
-def random_cluster(all_docs: np.ndarray, cluster_size: int) -> np.ndarray:
-    """Get a random cluster of given size"""
-    indexes = np.random.choice(len(all_docs), cluster_size)
-    return all_docs[indexes]
-
-
 def jsd_samples(
-    all_docs: np.ndarray, cluster_size: int, num_samples: int = 5000
+    all_docs: np.ndarray, cluster_size: int, num_samples: int = 5000, seed=None
 ) -> np.ndarray:
     """Determine JSD for random clusters of given size"""
     samples = np.empty(num_samples)
+    rng = np.random.default_rng(seed=seed)
 
     for i in trange(num_samples):
-        docs = random_cluster(all_docs, cluster_size)
+        docs = rng.choice(all_docs, size=cluster_size)
         doc_probs, cluster_prob = probabilities(docs)
         samples[i] = cluster_jsd_value(doc_probs, cluster_prob)
 

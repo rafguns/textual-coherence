@@ -7,7 +7,7 @@ import textual_coherence
 @pytest.fixture
 def single_cluster():
     """Returns probability tuple for single cluster"""
-    # 3 documents, 7 words
+    # 3 documents, 9 words
     docs = np.array(
         [
             [0, 0, 1, 0, 5, 2, 0, 0, 0],
