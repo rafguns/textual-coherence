@@ -53,15 +53,27 @@ def jsd_samples(
     all_docs: np.ndarray, cluster_size: int, num_samples: int = 5000, seed=None
 ) -> np.ndarray:
     """Determine JSD for random clusters of given size"""
-    samples = np.empty(num_samples)
+    if seed is None:
+        seed = 5  # Hack but needed to make the two RNGs below work
+
     rng = np.random.default_rng(seed=seed)
+    all_doc_probs = all_docs / all_docs.sum(axis=1, keepdims=True)
+    idx = np.arange(len(all_docs))
 
-    for i in trange(num_samples):
-        docs = rng.choice(all_docs, size=cluster_size)
-        doc_probs, cluster_prob = probabilities(docs)
-        samples[i] = cluster_jsd_value(doc_probs, cluster_prob)
+    idx_samples = rng.choice(idx, size=(num_samples, cluster_size))
 
-    return samples
+    doc_samples = all_docs[idx_samples]
+    doc_probs_samples = all_doc_probs[idx_samples]
+    cluster_prob_samples = doc_samples.sum(axis=1) / doc_samples.sum(axis=(2)).sum(
+        axis=1, keepdims=True
+    )
+
+    return np.array(
+        [
+            cluster_jsd_value(doc_probs, cluster_prob)
+            for doc_probs, cluster_prob in zip(doc_probs_samples, cluster_prob_samples)
+        ]
+    )
 
 
 def single_cluster_coherence(
