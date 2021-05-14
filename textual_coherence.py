@@ -10,7 +10,7 @@ from typing import List, Tuple
 
 import numpy as np
 from scipy.spatial.distance import jensenshannon
-from tqdm.auto import trange
+from tqdm.auto import tqdm
 
 
 def jensen_shannon_divergence(p: np.ndarray, q: np.ndarray) -> float:
@@ -56,24 +56,21 @@ def jsd_samples(
     if seed is None:
         seed = 5  # Hack but needed to make the two RNGs below work
 
-    rng = np.random.default_rng(seed=seed)
     all_doc_probs = all_docs / all_docs.sum(axis=1, keepdims=True)
     idx = np.arange(len(all_docs))
 
+    rng = np.random.default_rng(seed=seed)
     idx_samples = rng.choice(idx, size=(num_samples, cluster_size))
+    samples = np.empty(num_samples)
 
-    doc_samples = all_docs[idx_samples]
-    doc_probs_samples = all_doc_probs[idx_samples]
-    cluster_prob_samples = doc_samples.sum(axis=1) / doc_samples.sum(axis=(2)).sum(
-        axis=1, keepdims=True
-    )
+    for i, idx_sample in tqdm(enumerate(idx_samples)):
+        docs = all_docs[idx_sample]
+        doc_probs = all_doc_probs[idx_sample]
+        cluster_prob = docs.sum(axis=0) / docs.sum()
 
-    return np.array(
-        [
-            cluster_jsd_value(doc_probs, cluster_prob)
-            for doc_probs, cluster_prob in zip(doc_probs_samples, cluster_prob_samples)
-        ]
-    )
+        samples[i] = cluster_jsd_value(doc_probs, cluster_prob)
+
+    return samples
 
 
 def single_cluster_coherence(
