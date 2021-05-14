@@ -65,7 +65,7 @@ def jsd_samples(
 
 
 def single_cluster_coherence(
-    clu: np.ndarray, all_docs: np.ndarray, num_samples: int = 5000
+    clu: np.ndarray, all_docs: np.ndarray, num_samples: int = 5000, seed=None
 ) -> float:
     """Normalized coherence of a single cluster `clu`
 
@@ -80,12 +80,14 @@ def single_cluster_coherence(
     jsd_actual = cluster_jsd_value(doc_probs, cluster_prob)
 
     # Calculate average JSD value for random clusters of same size
-    jsd_rand = np.mean(jsd_samples(all_docs, len(clu), num_samples))
+    jsd_rand = np.mean(jsd_samples(all_docs, len(clu), num_samples, seed))
 
     return jsd_rand - jsd_actual
 
 
-def coherence(clustering_solution: List[np.ndarray], num_samples: int = 5000) -> float:
+def coherence(
+    clustering_solution: List[np.ndarray], num_samples: int = 5000, seed=None
+) -> float:
     r"""Average coherence for entire cluster solution
 
     This is calculated as a weighted average of coherences over all clusters
@@ -106,6 +108,6 @@ def coherence(clustering_solution: List[np.ndarray], num_samples: int = 5000) ->
 
     all_docs = np.concatenate(clustering_solution)
     return sum(
-        single_cluster_coherence(clu, all_docs, num_samples) * len(clu)
+        single_cluster_coherence(clu, all_docs, num_samples, seed) * len(clu)
         for clu in clustering_solution
     ) / len(all_docs)
