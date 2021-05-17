@@ -50,9 +50,18 @@ def probabilities(docs: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
 
 def jsd_samples(
-    all_docs: np.ndarray, cluster_size: int, num_samples: int = 5000, seed=None
+    all_docs: np.ndarray,
+    cluster_size: int,
+    num_samples: int = 5000,
+    seed=None,
+    max_chunk_size=300 * 1024 ** 2,
 ) -> np.ndarray:
-    """Determine JSD for random clusters of given size"""
+    """Determine Jensen-Shannon divergence for random clusters of given size
+
+    To speed up the calculation, the samples are grouped into chunks no larger than
+    `max_chunk_size`. Empirically, it seems that 300MiB is a reasonable chunk size.
+
+    """
     if seed is None:
         seed = 5  # Hack but needed to make the two RNGs below work
 
@@ -61,16 +70,31 @@ def jsd_samples(
 
     rng = np.random.default_rng(seed=seed)
     idx_samples = rng.choice(idx, size=(num_samples, cluster_size))
-    samples = np.empty(num_samples)
 
-    for i, idx_sample in tqdm(enumerate(idx_samples)):
-        docs = all_docs[idx_sample]
-        doc_probs = all_doc_probs[idx_sample]
-        cluster_prob = docs.sum(axis=0) / docs.sum()
+    # size of single sample in bytes; 8 bytes in float64
+    single_sample_size = cluster_size * all_docs.shape[1] * 8
 
-        samples[i] = cluster_jsd_value(doc_probs, cluster_prob)
+    # Divide into chunks of max size
+    num_chunks = 1 + (num_samples * single_sample_size // max_chunk_size)
 
-    return samples
+    samples = []
+    for idx_samples_chunk in tqdm(np.array_split(idx_samples, num_chunks)):
+        doc_samples = all_docs[idx_samples_chunk]
+        doc_probs_samples = all_doc_probs[idx_samples_chunk]
+        cluster_prob_samples = doc_samples.sum(axis=1) / doc_samples.sum(axis=(2)).sum(
+            axis=1, keepdims=True
+        )
+
+        samples.extend(
+            [
+                cluster_jsd_value(doc_probs, cluster_prob)
+                for doc_probs, cluster_prob in zip(
+                    doc_probs_samples, cluster_prob_samples
+                )
+            ]
+        )
+
+    return np.array(samples)
 
 
 def single_cluster_coherence(
